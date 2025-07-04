@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: bitnami/kafka:latest
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092
+  postgres: 
+    image: postgres:15
+    environment: 
+      POSTGRES_DB: weather
+      POSTGRES_USER: user 
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-i4nitdb.d/init.sql
+
+  producer:
+    build: ./producer
+    depends_on:
+      - kafka
+      - postregres
+    environment:
+      - KAFKA_BOOTSTRAP=kafka:9092
+      - PG_HOST=postgres
+      - PG_DB=weather
+      - PG_USER=user
+      - PG_PASSWORD=pass
+    restart: on-failure
+
+volumes:
+  pgdata:
+
+
+
